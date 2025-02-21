@@ -1,54 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useNavigate } from 'react-router-dom';
-
 import { db } from '../firebase';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import { initGoogleMaps } from '../firebase';
 import { format } from 'date-fns';
-import { Button, Rate, Input } from 'antd';
+import { Button, Rate, Input, message } from 'antd';
 
 import './CarList.css';
-
+import LocationPermissionModal from './LocationPermissionModal';
 
 const CarList = () => {
-
   const [cars, setCars] = useState([]);
+  const [showLocationModal, setShowLocationModal] = useState(
+    localStorage.getItem('locationPermission') !== 'accepted'
+  );
 
   const [location, setLocation] = useState('');
-  const [mapCenter, setMapCenter] = useState({ lat: 0, lng: 0 });
-  const [mapZoom, setMapZoom] = useState(10);
-  const [showMap, setShowMap] = useState(false);
-  const navigate = useNavigate();
-  const [selectedCar, setSelectedCar] = useState(null);
 
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCars = async () => {
       try {
+        console.log('Fetching cars from Firestore');
         let carQuery = collection(db, 'cars');
         
         if (location) {
-          carQuery = query(carQuery, where('location', '>=', location));
+          carQuery = query(
+            carQuery,
+            where('location.address', '>=', location),
+            where('location.address', '<=', location + '\uf8ff')
+          );
         }
 
         const carSnapshot = await getDocs(carQuery);
         const carList = carSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log('Fetched cars:', carList);
         setCars(carList);
 
-        if (carList.length > 0) {
-          const geocoder = new window.google.maps.Geocoder();
-          geocoder.geocode({ address: carList[0].location }, (results, status) => {
-            if (status === 'OK') {
-              setMapCenter({
-                lat: results[0].geometry.location.lat(),
-                lng: results[0].geometry.location.lng()
-              });
-              setMapZoom(12);
-              setShowMap(true);
-            }
-          });
-        }
       } catch (error) {
         console.error("Error fetching cars: ", error);
       }
@@ -77,56 +65,10 @@ const CarList = () => {
         </div>
       </div>
 
-
-
-      {showMap && (
-        <div className="map-container">
-          <LoadScript googleMapsApiKey={initGoogleMaps().mapConfig.apiKey}>
-            <GoogleMap
-              mapContainerStyle={{ width: '100%', height: '400px' }}
-              center={mapCenter}
-              zoom={mapZoom}
-            >
-              {cars.map((car) => (
-                <React.Fragment key={car.id}>
-                  <Marker
-                    position={{
-                      lat: car.location.coordinates.lat,
-                      lng: car.location.coordinates.lng
-                    }}
-                    onClick={() => setSelectedCar(car)}
-                  />
-                  {selectedCar?.id === car.id && (
-                    <InfoWindow
-                      position={{
-                        lat: car.location.coordinates.lat,
-                        lng: car.location.coordinates.lng
-                      }}
-                      onCloseClick={() => setSelectedCar(null)}
-                    >
-                      <div>
-                        <h4>{car.make} {car.model}</h4>
-                        <p>Year: {car.year}</p>
-                        <p>Location: {car.location.address}</p>
-                        <p>Daily: ${car.pricing?.daily}</p>
-                        <p>Weekly: ${car.pricing?.weekly}</p>
-                        <p>Monthly: ${car.pricing?.monthly}</p>
-                      </div>
-                    </InfoWindow>
-                  )}
-                </React.Fragment>
-              ))}
-            </GoogleMap>
-          </LoadScript>
-        </div>
-      )}
-
       <section className="car-grid-container" aria-label="List of available cars">
         <div className="car-grid" role="list">
           {cars.map((car) => (
-
             <article key={car.id} className="car-item" role="listitem">
-
               <div className="car-image-container">
                 <img
                   alt={`${car.year} ${car.make} ${car.model}`}
@@ -134,7 +76,6 @@ const CarList = () => {
                   className="car-image"
                   loading="lazy"
                 />
-
                 <div className="car-price-badge">
                   ${car.pricing?.daily}/day
                 </div>
@@ -156,24 +97,33 @@ const CarList = () => {
                 <Button
                   type="primary"
                   className="view-details-button"
-                  onClick={() => navigate(`/cars/${car.id}`)}
+                  onClick={() => {
+                    console.log('Navigating to car details with ID:', car.id);
+                    navigate(`/cars/${car.id}`);
+                  }}
                   aria-label={`View details for ${car.make} ${car.model}`}
                 >
                   View Details
                 </Button>
-
-
               </div>
             </article>
           ))}
         </div>
       </section>
 
-
-
+      <LocationPermissionModal
+        visible={showLocationModal}
+        onAccept={() => {
+          localStorage.setItem('locationPermission', 'accepted');
+          setShowLocationModal(false);
+        }}
+        onCancel={() => {
+          localStorage.setItem('locationPermission', 'denied');
+          setShowLocationModal(false);
+        }}
+      />
     </div>
   );
 };
-
 
 export default CarList;

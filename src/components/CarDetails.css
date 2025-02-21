@@ -1,68 +1,122 @@
 .car-details-container {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 2rem auto;
   padding: 2rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.car-images {
+.car-images-section {
   margin-bottom: 2rem;
+}
+
+.car-carousel .carousel-item {
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .car-image {
   width: 100%;
   height: 500px;
   object-fit: cover;
-  border-radius: 8px;
 }
 
-.car-info {
-  background: #fff;
+.car-info-section {
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.car-info h1 {
-  margin-bottom: 1.5rem;
+.car-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.car-title {
+  font-size: 2.5rem;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.car-rating-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rating-stars {
+  font-size: 1.5rem;
+}
+
+.rating-text {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.car-specs {
+  margin-bottom: 2rem;
+}
+
+.car-specs .ant-descriptions-item-label {
+  font-weight: 600;
   color: #333;
 }
 
-.pricing-details {
-  margin: 1rem 0;
+.car-specs .ant-descriptions-item-content {
+  color: #555;
 }
 
-.pricing-details .ant-tag {
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
+.pricing-details,
+.insurance-details,
 .features-list {
-  margin-top: 1rem;
-}
-
-.features-list .ant-tag {
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .action-buttons {
   margin-top: 2rem;
 }
 
-.action-buttons .ant-btn {
-  margin-right: 1rem;
+.button-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.action-button {
+  min-width: 180px;
+  height: 48px;
+  font-size: 1rem;
+  border-radius: 8px;
 }
 
 @media (max-width: 768px) {
   .car-details-container {
     padding: 1rem;
   }
-  
+
   .car-image {
     height: 300px;
   }
-  
-  .car-info {
-    padding: 1rem;
+
+  .car-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .car-title {
+    font-size: 2rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .action-button {
+    width: 100%;
   }
 }

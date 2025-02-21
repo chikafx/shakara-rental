@@ -7,7 +7,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'antd/dist/reset.css';
-import { CarOutlined, SafetyOutlined, CustomerServiceOutlined } from '@ant-design/icons';
+import { CarOutlined, SafetyOutlined, CustomerServiceOutlined, UserOutlined } from '@ant-design/icons';
 import './components/Home.css';
 import Signup from "./components/Signup";
 import VerifySignin from "./components/VerifySignin";
@@ -77,17 +77,36 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    console.log('Initializing auth state listener');
     const unsubscribe = auth.onAuthStateChanged(user => {
+      console.log('Auth state changed, user:', user);
+      console.log('Is user authenticated?', !!user);
       setIsAuthenticated(!!user);
+      
+      if (user) {
+        console.log('User details:', {
+          uid: user.uid,
+          email: user.email,
+          emailVerified: user.emailVerified
+        });
+      }
     });
-    return () => unsubscribe();
+    return () => {
+      console.log('Cleaning up auth state listener');
+      unsubscribe();
+    };
   }, []);
+
+
 
   const menuItems = [
     { key: '1', label: <Link to="/">Home</Link> },
     { key: '2', label: <Link to="/cars">Cars</Link> },
     { key: '3', label: <Link to="/add-car">Add Car</Link> },
-    { key: '4', label: <Link to="/profile">Profile</Link> },
+    ...(isAuthenticated ? [
+      { key: '4', label: <Link to="/profile"><UserOutlined /> Profile</Link> }
+    ] : []),
+
     ...(!isAuthenticated ? [
       { key: '5', label: <Link to="/signup">Sign Up</Link> },
       { key: '6', label: <Link to="/login">Login</Link> }
@@ -122,17 +141,24 @@ function App() {
             <ToastContainer position="bottom-right" autoClose={3000} />
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/profile" element={<Profile />} />
+
               <Route path="/signup" element={<Signup />} />
               <Route path="/verify-signin" element={<VerifySignin />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/cars" element={<Cars />} />
+              
+              <Route path="/cars">
+                <Route index element={<Cars />} />
+                <Route path=":id" element={<CarDetails />} />
+              </Route>
+              
               <Route path="/add-car" element={<AddCar />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/booking/:carId" element={<Booking />} />
               <Route path="/payment" element={<Payment />} />
-              <Route path="/cars/:id" element={<CarDetails />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+
           </div>
         </Content>
         <Footer style={{ textAlign: 'center' }}>
