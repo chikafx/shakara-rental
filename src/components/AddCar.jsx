@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 
-
 import { addDoc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from '../firebase';
@@ -9,12 +8,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Card, Input, Button, DatePicker, Upload } from 'antd';
+import { Card, Input, Button, DatePicker, Upload, Select } from 'antd';
 
 import { UploadOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import './AddCar.css';
-
-
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -22,11 +19,18 @@ const { RangePicker } = DatePicker;
 const AddCar = () => {
   const [mapCenter, setMapCenter] = useState([51.505, -0.09]);
 
-
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
   const [price, setPrice] = useState('');
+  const [currency, setCurrency] = useState('USD');
+  const currencySymbols = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    NGN: '₦'
+  };
+
   const [location, setLocation] = useState({
     address: '',
     coordinates: { lat: null, lng: null }
@@ -51,7 +55,6 @@ const AddCar = () => {
       return;
     }
 
-    // Check if location permissions are granted
     navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
       if (permissionStatus.state === 'denied') {
         toast.error('Location access is denied. Please enable location permissions in your browser settings.');
@@ -65,7 +68,7 @@ const AddCar = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           };
-          console.log('Retrieved location:', newCoords); // Debug log
+          console.log('Retrieved location:', newCoords);
           setLocation(prev => ({
             ...prev,
             coordinates: newCoords
@@ -76,7 +79,7 @@ const AddCar = () => {
         },
         (error) => {
           setUploading(false);
-          console.error('Geolocation error:', error); // Debug log
+          console.error('Geolocation error:', error);
           let errorMessage = 'Unable to retrieve your location';
           switch (error.code) {
             case error.PERMISSION_DENIED:
@@ -95,7 +98,7 @@ const AddCar = () => {
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000, // Increased timeout
+          timeout: 10000,
           maximumAge: 0
         }
       );
@@ -105,18 +108,21 @@ const AddCar = () => {
     });
   };
 
-
-
   const handleAddCar = async (e) => {
     e.preventDefault();
+    
+    // Add authentication check
+    if (!auth.currentUser) {
+      toast.error('You must be logged in to add a car. Please sign in or create an account.');
+      return;
+    }
+
     setUploading(true);
     
     try {
-      // Upload images and get URLs
       const imageUrls = await Promise.all(
         images.map(async (file) => await handleImageUpload(file))
       );
-
 
       await addDoc(collection(db, 'cars'), {
         make,
@@ -129,10 +135,12 @@ const AddCar = () => {
         },
         ownerId: auth.currentUser.uid,
         ownerName: auth.currentUser.displayName,
+        currency,
         pricing: {
           daily: price,
           weekly: price * 7 * 0.9,
-          monthly: price * 30 * 0.8
+          monthly: price * 30 * 0.8,
+          currency
         },
         insuranceOptions: {
           basic: price * 0.1,
@@ -145,7 +153,6 @@ const AddCar = () => {
         updatedAt: new Date()
       });
 
-      // Reset form
       setMake('');
       setModel('');
       setYear('');
@@ -189,7 +196,6 @@ const AddCar = () => {
       }
     });
 
-
     return location.coordinates.lat ? (
       <Marker
         position={[location.coordinates.lat, location.coordinates.lng]}
@@ -212,13 +218,8 @@ const AddCar = () => {
 
   const customRequest = async ({ file, onSuccess, onError, onProgress }) => {
     try {
-      // Show upload progress
       onProgress({ percent: 0 });
-      
-      // Upload file to Firebase Storage
       const url = await handleImageUpload(file);
-      
-      // Update images state with new file
       setImages(prev => [...prev, {
         uid: file.uid,
         name: file.name,
@@ -226,8 +227,6 @@ const AddCar = () => {
         url: url,
         originFileObj: file
       }]);
-      
-      // Complete upload
       onProgress({ percent: 100 });
       onSuccess();
     } catch (error) {
@@ -237,7 +236,6 @@ const AddCar = () => {
     }
   };
 
-
   return (
     <Card 
       title="Add New Car Listing" 
@@ -245,7 +243,6 @@ const AddCar = () => {
       style={{ maxWidth: 800, margin: '20px auto' }}
     >
       <form onSubmit={handleAddCar} className="add-car-form">
-
         <div className="form-section">
           <h3>Basic Information</h3>
           <div className="form-grid">
@@ -279,12 +276,26 @@ const AddCar = () => {
               />
             </div>
             <div className="form-item">
+              <label>Currency</label>
+              <Select
+                defaultValue="USD"
+                style={{ width: '100%' }}
+                onChange={(value) => setCurrency(value)}
+                options={[
+                  { value: 'USD', label: 'US Dollar (USD)' },
+                  { value: 'EUR', label: 'Euro (EUR)' },
+                  { value: 'GBP', label: 'British Pound (GBP)' },
+                  { value: 'NGN', label: 'Nigerian Naira (NGN)' }
+                ]}
+              />
+            </div>
+            <div className="form-item">
               <label>Price (per day)</label>
               <Input
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                prefix="$"
+                prefix={currencySymbols[currency]}
                 min="0"
                 required
               />
@@ -364,8 +375,6 @@ const AddCar = () => {
           </Upload>
         </div>
 
-
-
         <Button 
           type="primary" 
           htmlType="submit" 
@@ -377,12 +386,9 @@ const AddCar = () => {
         >
           {uploading ? 'Adding Your Car...' : 'Add Car'}
         </Button>
-
-
       </form>
     </Card>
   );
 };
-
 
 export default AddCar;
